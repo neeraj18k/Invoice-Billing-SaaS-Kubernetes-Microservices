@@ -1,0 +1,47 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: nginx-config
+data:
+  nginx.conf: |
+    events {
+        worker_connections 1024;
+    }
+
+    http {
+        upstream client-service {
+            server client-service:3000;
+        }
+
+        upstream invoice-service {
+            server invoice-service:3001;
+        }
+
+        upstream payment-service {
+            server payment-service:3002;
+        }
+
+        upstream report-service {
+            server report-service:3003;
+        }
+
+        server {
+            listen 80;
+
+            location /api/clients {
+                proxy_pass http://client-service/api/clients;
+            }
+
+            location /api/invoices {
+                proxy_pass http://invoice-service/api/invoices;
+            }
+
+            location /api/payments {
+                proxy_pass http://payment-service/api/payments;
+            }
+
+            location /api/reports {
+                proxy_pass http://report-service/api/reports;
+            }
+        }
+    }

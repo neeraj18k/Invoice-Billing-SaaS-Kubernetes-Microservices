@@ -1,0 +1,121 @@
+version: '3.8'
+
+services:
+  client-service:
+    build: ./client-service
+    ports:
+      - "3000:3000"
+    environment:
+      - MONGODB_URI=mongodb://mongodb-client:27017/client-service
+      - PORT=3000
+      - NODE_ENV=development
+    depends_on:
+      - mongodb-client
+    networks:
+      - invoice-billing-network
+
+  invoice-service:
+    build: ./invoice-service
+    ports:
+      - "3001:3001"
+    environment:
+      - MONGODB_URI=mongodb://mongodb-invoice:27017/invoice-service
+      - CLIENT_SERVICE_URL=http://client-service:3000
+      - PORT=3001
+      - NODE_ENV=development
+    depends_on:
+      - mongodb-invoice
+      - client-service
+    networks:
+      - invoice-billing-network
+
+  payment-service:
+    build: ./payment-service
+    ports:
+      - "3002:3002"
+    environment:
+      - MONGODB_URI=mongodb://mongodb-payment:27017/payment-service
+      - INVOICE_SERVICE_URL=http://invoice-service:3001
+      - PORT=3002
+      - NODE_ENV=development
+      - INVOICE_SERVICE_URL=http://invoice-service:3001
+    depends_on:
+      - mongodb-payment
+      - invoice-service
+    networks:
+      - invoice-billing-network
+
+  report-service:
+    build: ./report-service
+    ports:
+      - "3003:3003"
+    environment:
+      - MONGODB_URI=mongodb://mongodb-report:27017/report-service
+      - INVOICE_SERVICE_URL=http://invoice-service:3001
+      - PAYMENT_SERVICE_URL=http://payment-service:3002
+      - PORT=3003
+      - NODE_ENV=development
+    depends_on:
+      - mongodb-report
+      - invoice-service
+      - payment-service
+    networks:
+      - invoice-billing-network
+
+  nginx-gateway:
+    build: ./nginx-gateway
+    ports:
+      - "80:80"
+    depends_on:
+      - client-service
+      - invoice-service
+      - payment-service
+      - report-service
+    networks:
+      - invoice-billing-network
+
+  mongodb-client:
+    image: mongo:6.0
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongodb-client-data:/data/db
+    networks:
+      - invoice-billing-network
+
+  mongodb-invoice:
+    image: mongo:6.0
+    ports:
+      - "27018:27017"
+    volumes:
+      - mongodb-invoice-data:/data/db
+    networks:
+      - invoice-billing-network
+
+  mongodb-payment:
+    image: mongo:6.0
+    ports:
+      - "27019:27017"
+    volumes:
+      - mongodb-payment-data:/data/db
+    networks:
+      - invoice-billing-network
+
+  mongodb-report:
+    image: mongo:6.0
+    ports:
+      - "27020:27017"
+    volumes:
+      - mongodb-report-data:/data/db
+    networks:
+      - invoice-billing-network
+
+volumes:
+  mongodb-client-data:
+  mongodb-invoice-data:
+  mongodb-payment-data:
+  mongodb-report-data:
+
+networks:
+  invoice-billing-network:
+    driver: bridge

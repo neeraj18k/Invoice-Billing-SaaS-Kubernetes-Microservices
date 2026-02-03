@@ -1,0 +1,51 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: report-service
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: report-service
+  template:
+    metadata:
+      labels:
+        app: report-service
+    spec:
+      containers:
+        - name: report-service
+          image: invoice-billing-platform-report-service:latest
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 3003
+          env:
+            - name: MONGODB_URI
+              value: mongodb://mongodb-report:27017/report-service
+            - name: INVOICE_SERVICE_URL
+              value: http://invoice-service:3001
+            - name: PAYMENT_SERVICE_URL
+              value: http://payment-service:3002
+            - name: PORT
+              value: "3003"
+            - name: NODE_ENV
+              value: production
+          resources:
+            requests:
+              cpu: "100m"
+              memory: "128Mi"
+            limits:
+              cpu: "300m"
+              memory: "256Mi"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: report-service
+spec:
+  selector:
+    app: report-service
+  ports:
+    - port: 3003
+      targetPort: 3003
+  type: ClusterIP
+                         
